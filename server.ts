@@ -217,7 +217,111 @@ Output raw JSON only.`;
     res.json({ success: true, aiGenerated: false });
   });
 
-  // Development vs Production Vite handling
+  // Dedicated AI Translation endpoint for stories
+  app.post('/api/ai/translate', async (req, res) => {
+    const { title, summary, content, takeaways } = req.body;
+    if (!content) {
+      return res.status(400).json({ error: 'Content is required.' });
+    }
+
+    if (ai) {
+      try {
+        const prompt = `You are a professional bilingual journalist for Nepal's leading newspapers.
+Translate the following news article into natural, professional Nepali (देवनागरी लिपि).
+Use standard Nepali journalistic terms (e.g., जाहेरी for FIR, विस्थापित for displaced, निषेधाज्ञा for prohibitory order, मन्थन/छलफल for deliberation).
+
+Title: ${title}
+Summary: ${summary}
+Content: ${content}
+Takeaways: ${JSON.stringify(takeaways || [])}
+
+Return a STRICT JSON object only with these exact keys:
+{
+  "titleNepali": "नेपाली शीर्षक",
+  "summaryNepali": "नेपालीमा संक्षिप्त सार (२-३ वाक्य)",
+  "contentNepali": "नेपालीमा सम्पूर्ण समाचार विवरण (अनुच्छेदहरू बीच \\n\\n राख्नुहोस्)",
+  "keyTakeawaysNepali": ["मुख्य बुँदा १", "मुख्य बुँदा २", "मुख्य बुँदा ३"]
+}
+Output raw JSON only. Do not add markdown or backticks.`;
+
+        const geminiRes = await ai.models.generateContent({
+          model: 'gemini-3.8-flash',
+          contents: prompt,
+        });
+
+        const reply = (geminiRes.text || '{}').replace(/```json/g, '').replace(/```/g, '').trim();
+        const parsed = JSON.parse(reply);
+        return res.json({ success: true, translation: parsed });
+      } catch (err) {
+        console.warn('Gemini translation error:', err);
+      }
+    }
+
+    // Fallback translation response
+    res.json({
+      success: true,
+      translation: {
+        titleNepali: title,
+        summaryNepali: summary,
+        contentNepali: content,
+        keyTakeawaysNepali: takeaways || [],
+      },
+    });
+  });
+
+  // Live RSS feed aggregator from Nepali news portals
+  app.get('/api/scrape/live-feeds', async (req, res) => {
+    const feeds = [
+      { name: 'OnlineKhabar English', url: 'https://english.onlinekhabar.com/feed', domain: 'english.onlinekhabar.com' },
+      { name: 'The Himalayan Times', url: 'https://thehimalayantimes.com/feed', domain: 'thehimalayantimes.com' },
+    ];
+
+    const scrapedArticles: any[] = [];
+
+    for (const feed of feeds) {
+      try {
+        const response = await fetch(feed.url, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NepalNewsMonitor/1.0)' },
+          signal: AbortSignal.timeout(6000),
+        });
+
+        if (response.ok) {
+          const xml = await response.text();
+          const items = xml.match(/<item[\s\S]*?<\/item>/gi) || [];
+
+          for (const itemXml of items.slice(0, 3)) {
+            const titleMatch = itemXml.match(/<title[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/i);
+            const linkMatch = itemXml.match(/<link[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/i);
+            const descMatch = itemXml.match(/<description[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/i);
+            const pubDateMatch = itemXml.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i);
+
+            if (titleMatch && linkMatch) {
+              const itemTitle = titleMatch[1].replace(/<[^>]+>/g, '').trim();
+              const itemLink = linkMatch[1].trim();
+              const rawDesc = (descMatch ? descMatch[1] : '').replace(/<[^>]+>/g, ' ').trim();
+              const itemDate = pubDateMatch ? new Date(pubDateMatch[1]).toISOString() : new Date().toISOString();
+
+              const analyzed = analyzeNewsText(rawDesc + '\n\n' + itemTitle, itemTitle, feed.domain);
+              analyzed.sourceUrl = itemLink;
+              analyzed.sourceName = feed.name;
+
+              const art = convertExtractedToArticle(analyzed, `live-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`);
+              art.publishedAt = itemDate;
+              scrapedArticles.push(art);
+            }
+          }
+        }
+      } catch (feedErr) {
+        console.warn(`Feed ${feed.name} fetch skipped:`, feedErr);
+      }
+    }
+
+    res.json({
+      success: true,
+      count: scrapedArticles.length,
+      articles: scrapedArticles,
+    });
+  });
   if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.resolve(__dirname, 'dist')));
     app.get('*', (req, res) => {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Bookmark, ShieldAlert, Users, Clock, ExternalLink } from 'lucide-react';
 import { NewsArticle } from '../types/news';
+import { getSafeWorkingSourceUrl } from '../services/mediaCoverage';
 
 interface ArticleCardProps {
   article: NewsArticle;
@@ -17,6 +18,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   isBookmarked,
   featured = false,
 }) => {
+  const safeSource = getSafeWorkingSourceUrl(article);
   // Format publication date relative or clean string
   const formatTime = (iso: string) => {
     try {
@@ -137,18 +139,16 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          {article.source.url && (
-            <a
-              href={article.source.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="text-stone-400 hover:text-stone-700 transition-colors p-1"
-              title="Open original portal source"
-            >
-              <ExternalLink className="w-3 h-3" />
-            </a>
-          )}
+          <a
+            href={safeSource.portalSearchUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="text-stone-400 hover:text-stone-700 transition-colors p-1"
+            title={`Search on ${article.source.domain}`}
+          >
+            <ExternalLink className="w-3 h-3" />
+          </a>
           <button
             onClick={() => onOpenArticle(article)}
             className="font-semibold text-stone-900 hover:text-rose-700 transition-colors cursor-pointer text-xs"

@@ -16,8 +16,17 @@ import {
   Info,
   Type,
   FileText,
+  Download,
+  Languages,
+  Layers,
+  Globe2,
+  Search,
+  ExternalLink as LinkIcon,
 } from 'lucide-react';
 import { NewsArticle } from '../types/news';
+import { downloadArticleAsDoc, copyFormattedArticleForGoogleDocs } from '../services/docExport';
+import { translateArticleToNepali } from '../services/translationService';
+import { getMediaOutletsForArticle, getSafeWorkingSourceUrl } from '../services/mediaCoverage';
 
 interface ReaderModalProps {
   article: NewsArticle | null;
@@ -35,8 +44,21 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
   // Reading preferences
   const [fontSize, setFontSize] = useState<'normal' | 'large' | 'xlarge'>('normal');
   const [fontFamily, setFontFamily] = useState<'serif' | 'sans'>('serif');
-  const [themeMode, setThemeMode] = useState<'light' | 'sepia' | 'dark'>('light');
+  const [themeMode, setThemeMode] = useState<'light' | 'sepia' | 'dark'>('dark');
+  
+  // Language Converter (English vs Nepali)
+  const [currentLang, setCurrentLang] = useState<'en' | 'ne'>('en');
+  const [isTranslating, setIsTranslating] = useState<boolean>(false);
+  const [translatedArticle, setTranslatedArticle] = useState<{
+    titleNepali?: string;
+    summaryNepali?: string;
+    contentNepali?: string;
+    keyTakeawaysNepali?: string[];
+  }>({});
+
+  // Action status messages
   const [copied, setCopied] = useState(false);
+  const [googleDocsOpened, setGoogleDocsOpened] = useState(false);
 
   // Audio Speech Synthesis state
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -44,16 +66,19 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
   const [speechRate, setSpeechRate] = useState<number>(1);
   const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // Active glossary tooltip
-  const [activeGlossaryTerm, setActiveGlossaryTerm] = useState<string | null>(null);
+  // Related media coverage active tab
+  const [showRelatedMedia, setShowRelatedMedia] = useState(true);
 
   useEffect(() => {
-    // Reset audio state when article changes or opens
+    // Reset state on article change
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       setIsPlayingAudio(false);
       setIsPausedAudio(false);
     }
+    setCurrentLang('en');
+    setTranslatedArticle({});
+    setGoogleDocsOpened(false);
 
     return () => {
       if ('speechSynthesis' in window) {
@@ -64,6 +89,42 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
 
   if (!article) return null;
 
+  // Language conversion trigger
+  const handleToggleLanguage = async (targetLang: 'en' | 'ne') => {
+    setCurrentLang(targetLang);
+
+    if (targetLang === 'ne' && (!article.contentNepali && !translatedArticle.contentNepali)) {
+      setIsTranslating(true);
+      try {
+        const result = await translateArticleToNepali(article);
+        setTranslatedArticle(result);
+      } catch (err) {
+        console.warn('Translation error:', err);
+      } finally {
+        setIsTranslating(false);
+      }
+    }
+  };
+
+  // Content based on active language
+  const isNe = currentLang === 'ne';
+  const activeTitle = isNe && (article.titleNepali || translatedArticle.titleNepali)
+    ? (article.titleNepali || translatedArticle.titleNepali)!
+    : article.title;
+
+  const activeSummary = isNe && (article.summaryNepali || translatedArticle.summaryNepali)
+    ? (article.summaryNepali || translatedArticle.summaryNepali)!
+    : article.summary;
+
+  const activeContent = isNe && (article.contentNepali || translatedArticle.contentNepali)
+    ? (article.contentNepali || translatedArticle.contentNepali)!
+    : article.content;
+
+  const activeTakeaways = isNe && (article.keyTakeawaysNepali || translatedArticle.keyTakeawaysNepali)
+    ? (article.keyTakeawaysNepali || translatedArticle.keyTakeawaysNepali)!
+    : article.keyTakeaways;
+
+  // Audio Speech Synthesis
   const handleStartSpeech = () => {
     if (!('speechSynthesis' in window)) {
       alert('Speech synthesis is not supported on this browser.');
@@ -79,11 +140,20 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
 
     window.speechSynthesis.cancel();
 
-    // Prepare read-aloud text
-    const textToRead = `${article.title}. Published by ${article.source.name}. ${article.summary}. ${article.content}`;
+    const textToRead = `${activeTitle}. ${activeSummary}. ${activeContent}`;
     const utterance = new SpeechSynthesisUtterance(textToRead);
     utterance.rate = speechRate;
     utterance.pitch = 1.0;
+
+    // Pick appropriate voice for Nepali or English
+    const voices = window.speechSynthesis.getVoices();
+    if (isNe) {
+      const neVoice = voices.find((v) => v.lang.startsWith('ne') || v.lang.startsWith('hi'));
+      if (neVoice) utterance.voice = neVoice;
+    } else {
+      const enVoice = voices.find((v) => v.lang.startsWith('en'));
+      if (enVoice) utterance.voice = enVoice;
+    }
 
     utterance.onend = () => {
       setIsPlayingAudio(false);
@@ -117,49 +187,31 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
     }
   };
 
+  // Direct Word Doc (.doc) download
+  const handleDownloadWordDoc = () => {
+    downloadArticleAsDoc(article, currentLang);
+  };
+
+  // Google Docs 1-click export
+  const handleOpenGoogleDocs = () => {
+    copyFormattedArticleForGoogleDocs(article, currentLang);
+    setGoogleDocsOpened(true);
+    setTimeout(() => setGoogleDocsOpened(false), 4000);
+    // Open blank Google Docs tab
+    window.open('https://docs.google.com/document/create', '_blank', 'noopener,noreferrer');
+  };
+
   const handleCopyText = () => {
-    const text = `${article.title}\nSource: ${article.source.name} (${article.source.url})\n\n${article.summary}\n\n${article.content}`;
+    const text = `${activeTitle}\nSource: ${article.source.name} (${article.source.url})\n\n${activeSummary}\n\n${activeContent}`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleExportMarkdown = () => {
-    let md = `# ${article.title}\n`;
-    if (article.titleNepali) md += `*${article.titleNepali}*\n\n`;
-    md += `**Source:** [${article.source.name}](${article.source.url}) | **Location:** ${article.location.province} (${article.location.district || ''})\n\n`;
-    md += `## Executive Summary\n${article.summary}\n\n`;
-    if (article.keyTakeaways && article.keyTakeaways.length > 0) {
-      md += `## Key Takeaways\n`;
-      article.keyTakeaways.forEach((t) => (md += `- ${t}\n`));
-      md += `\n`;
-    }
-    if (article.policeReport?.isPoliceReportMentioned) {
-      md += `## Nepal Police Report Dossier\n`;
-      md += `- **Station/Office:** ${article.policeReport.policeStationOrDivision}\n`;
-      if (article.policeReport.firNumber) md += `- **FIR Number:** ${article.policeReport.firNumber}\n`;
-      md += `- **Offense Type:** ${article.policeReport.offenseType || 'General Incident'}\n`;
-      md += `- **Arrests Recorded:** ${article.policeReport.arrestsCount}\n\n`;
-    }
-    if (article.displacement?.isDisplacementIncident) {
-      md += `## Conflict Displacement Dossier\n`;
-      md += `- **Displaced Families:** ${article.displacement.familiesCount}\n`;
-      md += `- **Origin:** ${article.displacement.originLocation}\n`;
-      md += `- **Current Shelter:** ${article.displacement.currentShelterLocation}\n`;
-      md += `- **Relief Status:** ${article.displacement.reliefStatus}\n\n`;
-    }
-    md += `## Full Report\n${article.content}\n`;
+  const safeSource = getSafeWorkingSourceUrl(article);
+  const mediaOutlets = getMediaOutletsForArticle(article);
 
-    const blob = new Blob([md], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${article.slug || 'nepal-news'}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  // Color schemes for reader modes
+  // Color schemes
   const themeClasses = {
     light: 'bg-white text-stone-900 border-stone-200',
     sepia: 'bg-[#FAF6ED] text-[#38332E] border-[#E8DFD0]',
@@ -184,10 +236,10 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
         className={`relative w-full max-w-4xl rounded-xl shadow-2xl border flex flex-col my-auto max-h-[92vh] overflow-hidden transition-colors ${themeClasses}`}
       >
         {/* Top Control Bar */}
-        <div className={`px-4 sm:px-6 py-3 border-b flex items-center justify-between gap-3 shrink-0 ${themeClasses}`}>
-          <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto text-xs">
+        <div className={`px-4 sm:px-6 py-2.5 border-b flex items-center justify-between gap-3 shrink-0 ${themeClasses}`}>
+          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto text-xs py-0.5">
             {/* Audio Voice Player Controls */}
-            <div className="flex items-center gap-1.5 bg-stone-100 dark:bg-stone-800 p-1 rounded-lg">
+            <div className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800 p-1 rounded-lg">
               {!isPlayingAudio ? (
                 <button
                   onClick={handleStartSpeech}
@@ -218,7 +270,6 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
                 </button>
               )}
 
-              {/* Speed toggle */}
               <button
                 onClick={() => setSpeechRate(speechRate === 1 ? 1.25 : speechRate === 1.25 ? 1.5 : 1)}
                 className="px-1.5 py-0.5 text-[11px] font-bold text-stone-600 dark:text-stone-300 hover:text-stone-900 cursor-pointer"
@@ -228,8 +279,33 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
               </button>
             </div>
 
-            {/* Typography family */}
+            {/* Language Converter Toggle (English vs Nepali) */}
             <div className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800 p-1 rounded-lg">
+              <button
+                onClick={() => handleToggleLanguage('en')}
+                className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
+                  currentLang === 'en'
+                    ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-white shadow-xs'
+                    : 'text-stone-600 dark:text-stone-300 hover:text-stone-900'
+                }`}
+              >
+                English
+              </button>
+              <button
+                onClick={() => handleToggleLanguage('ne')}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
+                  currentLang === 'ne'
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'text-stone-600 dark:text-stone-300 hover:text-stone-900'
+                }`}
+              >
+                <Languages className="w-3 h-3" />
+                <span>नेपाली</span>
+              </button>
+            </div>
+
+            {/* Typography family */}
+            <div className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800 p-1 rounded-lg hidden sm:flex">
               <button
                 onClick={() => setFontFamily('serif')}
                 className={`px-2 py-1 rounded font-serif ${
@@ -249,7 +325,7 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
             </div>
 
             {/* Font size */}
-            <div className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800 p-1 rounded-lg">
+            <div className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800 p-1 rounded-lg hidden md:flex">
               <button
                 onClick={() => setFontSize('normal')}
                 className={`px-2 py-1 rounded text-xs ${fontSize === 'normal' ? 'bg-white dark:bg-stone-700 font-bold shadow-xs' : 'text-stone-600 dark:text-stone-300'} cursor-pointer`}
@@ -274,24 +350,45 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
             <div className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800 p-1 rounded-lg">
               <button
                 onClick={() => setThemeMode('light')}
-                className={`w-5 h-5 rounded-full bg-white border border-stone-300 ${themeMode === 'light' ? 'ring-2 ring-stone-900' : ''} cursor-pointer`}
+                className={`w-4.5 h-4.5 rounded-full bg-white border border-stone-300 ${themeMode === 'light' ? 'ring-2 ring-stone-900' : ''} cursor-pointer`}
                 title="Light mode"
               />
               <button
                 onClick={() => setThemeMode('sepia')}
-                className={`w-5 h-5 rounded-full bg-[#FAF6ED] border border-[#d6cbba] ${themeMode === 'sepia' ? 'ring-2 ring-amber-800' : ''} cursor-pointer`}
+                className={`w-4.5 h-4.5 rounded-full bg-[#FAF6ED] border border-[#d6cbba] ${themeMode === 'sepia' ? 'ring-2 ring-amber-800' : ''} cursor-pointer`}
                 title="Warm paper mode"
               />
               <button
                 onClick={() => setThemeMode('dark')}
-                className={`w-5 h-5 rounded-full bg-stone-900 border border-stone-700 ${themeMode === 'dark' ? 'ring-2 ring-stone-400' : ''} cursor-pointer`}
+                className={`w-4.5 h-4.5 rounded-full bg-stone-900 border border-stone-700 ${themeMode === 'dark' ? 'ring-2 ring-stone-400' : ''} cursor-pointer`}
                 title="Night dark mode"
               />
             </div>
           </div>
 
-          {/* Right action icons */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Right action icons (Word Doc, Google Docs, Bookmark, Close) */}
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            {/* Download as Word .doc */}
+            <button
+              onClick={handleDownloadWordDoc}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-700 rounded-md transition-colors cursor-pointer"
+              title="Download formatted .doc file (Word / Google Docs)"
+            >
+              <Download className="w-3.5 h-3.5 text-blue-500" />
+              <span className="hidden sm:inline">.doc</span>
+            </button>
+
+            {/* Open in Google Docs */}
+            <button
+              onClick={handleOpenGoogleDocs}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 rounded-md transition-colors cursor-pointer"
+              title="Open Google Docs and copy formatted report"
+            >
+              <FileText className="w-3.5 h-3.5 text-blue-600" />
+              <span className="hidden sm:inline">Google Docs</span>
+            </button>
+
+            {/* Bookmark */}
             <button
               onClick={() => onToggleBookmark(article.id)}
               className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
@@ -304,20 +401,13 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
               <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-rose-600' : ''}`} />
             </button>
 
+            {/* Copy Clean text */}
             <button
               onClick={handleCopyText}
               className="p-1.5 text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 rounded-lg transition-colors cursor-pointer"
-              title="Copy clean report text"
+              title="Copy plain text"
             >
               {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-            </button>
-
-            <button
-              onClick={handleExportMarkdown}
-              className="p-1.5 text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 rounded-lg transition-colors cursor-pointer"
-              title="Download Markdown report"
-            >
-              <FileText className="w-4 h-4" />
             </button>
 
             <button
@@ -330,20 +420,59 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
           </div>
         </div>
 
+        {/* Google Docs helper notice toast */}
+        {googleDocsOpened && (
+          <div className="bg-blue-600 text-white px-4 py-2 text-xs flex items-center justify-between animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <Check className="w-4 h-4 text-emerald-300" />
+              <span>
+                Formatted document copied to clipboard! Paste (Ctrl+V / Cmd+V) directly into your new Google Doc.
+              </span>
+            </div>
+            <button onClick={() => setGoogleDocsOpened(false)} className="text-white hover:opacity-80">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* Translating loader banner */}
+        {isTranslating && (
+          <div className="bg-rose-600 text-white px-4 py-1.5 text-xs flex items-center justify-center gap-2 animate-pulse">
+            <Languages className="w-3.5 h-3.5" />
+            <span>Translating article to natural Nepali (देवनागरी)...</span>
+          </div>
+        )}
+
         {/* Reader Scrollable Content */}
         <div className={`overflow-y-auto px-6 sm:px-12 md:px-16 py-8 flex-1 ${bodyBgClasses}`}>
           <div className="max-w-2xl mx-auto space-y-6">
-            {/* Metadata unboxed header */}
-            <div className="flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400 uppercase tracking-widest font-medium">
-              <span>{article.location.province} Province</span>
-              {article.location.district && (
-                <>
-                  <span>·</span>
-                  <span>{article.location.district}</span>
-                </>
-              )}
-              <span>·</span>
-              <span>{article.source.name}</span>
+            {/* Metadata unboxed header with verified source search */}
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-stone-500 dark:text-stone-400 uppercase tracking-widest font-medium">
+              <div className="flex items-center gap-2">
+                <span>{article.location.province} Province</span>
+                {article.location.district && (
+                  <>
+                    <span>·</span>
+                    <span>{article.location.district}</span>
+                  </>
+                )}
+                <span>·</span>
+                <span>{article.source.name}</span>
+              </div>
+
+              {/* Working Source links */}
+              <div className="flex items-center gap-2 lowercase normal-case">
+                <a
+                  href={safeSource.portalSearchUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-semibold text-rose-500 hover:text-rose-400 hover:underline"
+                  title="Search this exact coverage on original portal"
+                >
+                  <Search className="w-3 h-3" />
+                  <span>Verify on {article.source.domain.replace('www.', '')}</span>
+                </a>
+              </div>
             </div>
 
             {/* Main Headline */}
@@ -352,18 +481,18 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
                 fontFamily === 'serif' ? 'font-editorial text-2xl sm:text-3xl md:text-4xl' : 'font-sans text-2xl sm:text-3xl'
               }`}
             >
-              {article.title}
+              {activeTitle}
             </h1>
 
-            {/* Nepali Title if present */}
-            {article.titleNepali && (
+            {/* Bilingual kicker if in English mode but Nepali title exists */}
+            {!isNe && article.titleNepali && (
               <p className="text-base text-stone-600 dark:text-stone-300 font-medium italic border-l-2 border-stone-300 pl-3">
                 {article.titleNepali}
               </p>
             )}
 
             {/* Byline and Dateline */}
-            <div className="flex items-center justify-between text-xs text-stone-500 dark:text-stone-400 py-3 border-y border-stone-200 dark:border-stone-800">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-stone-500 dark:text-stone-400 py-3 border-y border-stone-200 dark:border-stone-800">
               <div>
                 <span>By {article.author}</span>
                 <span className="mx-2">·</span>
@@ -377,27 +506,39 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
                 </span>
               </div>
 
-              {article.source.url && (
+              <div className="flex items-center gap-3">
                 <a
-                  href={article.source.url}
+                  href={safeSource.googleNewsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 font-semibold text-rose-600 hover:underline"
+                  className="inline-flex items-center gap-1 text-sky-500 hover:underline"
+                  title="Search on Google News Nepal"
                 >
-                  <span>Original Source</span>
+                  <span>Google News</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
-              )}
+
+                <a
+                  href={safeSource.primaryUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-semibold text-rose-500 hover:underline"
+                  title="Open original publication portal"
+                >
+                  <span>Live Portal Link</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
             </div>
 
             {/* Executive Summary Takeaways Box */}
-            {article.keyTakeaways && article.keyTakeaways.length > 0 && (
+            {activeTakeaways && activeTakeaways.length > 0 && (
               <div className="bg-stone-50 dark:bg-stone-800/60 border border-stone-200 dark:border-stone-700 rounded-lg p-4">
                 <h3 className="text-xs font-bold text-stone-700 dark:text-stone-300 uppercase tracking-wider mb-2">
-                  Key Takeaways
+                  {isNe ? 'मुख्य सार बुँदाहरू' : 'Executive Key Takeaways'}
                 </h3>
                 <ul className="space-y-1.5 text-xs sm:text-sm text-stone-800 dark:text-stone-200 list-disc list-inside">
-                  {article.keyTakeaways.map((takeaway, idx) => (
+                  {activeTakeaways.map((takeaway, idx) => (
                     <li key={idx} className="leading-snug">
                       {takeaway}
                     </li>
@@ -406,66 +547,66 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
               </div>
             )}
 
-            {/* Displacement Dossier Box (if applicable) */}
+            {/* Displacement Dossier Box */}
             {article.displacement?.isDisplacementIncident && (
               <div className="bg-rose-50/80 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-lg p-4">
                 <div className="flex items-center gap-2 text-rose-900 dark:text-rose-300 font-bold text-xs uppercase tracking-wider mb-2">
                   <Users className="w-4 h-4 text-rose-700 dark:text-rose-400" />
-                  <span>Conflict Displacement Dossier</span>
+                  <span>{isNe ? 'द्वन्द्व विस्थापन अनुगमन विवरण' : 'Conflict Displacement Dossier'}</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-rose-950 dark:text-rose-200">
                   <div>
-                    <span className="text-rose-700 dark:text-rose-400 font-medium">Displaced Population: </span>
-                    <strong>{article.displacement.familiesCount} Families</strong>
-                    {article.displacement.individualsCount && ` (~${article.displacement.individualsCount} persons)`}
+                    <span className="text-rose-700 dark:text-rose-400 font-medium">{isNe ? 'विस्थापित:' : 'Displaced Population:'} </span>
+                    <strong>{article.displacement.familiesCount} {isNe ? 'परिवार' : 'Families'}</strong>
+                    {article.displacement.individualsCount && ` (~${article.displacement.individualsCount} ${isNe ? 'नागरिक' : 'persons'})`}
                   </div>
                   <div>
-                    <span className="text-rose-700 dark:text-rose-400 font-medium">Current Shelter: </span>
+                    <span className="text-rose-700 dark:text-rose-400 font-medium">{isNe ? 'आश्रयस्थल:' : 'Current Shelter:'} </span>
                     <span>{article.displacement.currentShelterLocation}</span>
                   </div>
                   <div>
-                    <span className="text-rose-700 dark:text-rose-400 font-medium">Cause: </span>
+                    <span className="text-rose-700 dark:text-rose-400 font-medium">{isNe ? 'कारण:' : 'Cause:'} </span>
                     <span className="capitalize">{article.displacement.displacementCause.replace(/_/g, ' ')}</span>
                   </div>
                   <div>
-                    <span className="text-rose-700 dark:text-rose-400 font-medium">Relief Status: </span>
+                    <span className="text-rose-700 dark:text-rose-400 font-medium">{isNe ? 'राहत स्थिति:' : 'Relief Status:'} </span>
                     <span className="font-semibold">{article.displacement.reliefStatus.replace(/_/g, ' ')}</span>
                   </div>
                 </div>
                 {article.displacement.aidRequired && article.displacement.aidRequired.length > 0 && (
                   <div className="mt-2.5 pt-2 border-t border-rose-200/60 dark:border-rose-900 text-xs">
-                    <span className="text-rose-700 dark:text-rose-400 font-medium">Urgent Aid Required: </span>
+                    <span className="text-rose-700 dark:text-rose-400 font-medium">{isNe ? 'तत्काल आवश्यक राहत:' : 'Urgent Aid Required:'} </span>
                     <span>{article.displacement.aidRequired.join(' · ')}</span>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Police Report Blotter Dossier Box (if applicable) */}
+            {/* Police Report Blotter Dossier Box */}
             {article.policeReport?.isPoliceReportMentioned && (
               <div className="bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900 rounded-lg p-4">
                 <div className="flex items-center gap-2 text-indigo-900 dark:text-indigo-300 font-bold text-xs uppercase tracking-wider mb-2">
                   <ShieldAlert className="w-4 h-4 text-indigo-700 dark:text-indigo-400" />
-                  <span>Nepal Police blotter Record</span>
+                  <span>{isNe ? 'नेपाल प्रहरी जाहेरी तथा अनुसन्धान विवरण' : 'Nepal Police Blotter Record'}</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-indigo-950 dark:text-indigo-200">
                   <div>
-                    <span className="text-indigo-700 dark:text-indigo-400 font-medium">Police Unit: </span>
+                    <span className="text-indigo-700 dark:text-indigo-400 font-medium">{isNe ? 'प्रहरी इकाई:' : 'Police Unit:'} </span>
                     <strong>{article.policeReport.policeStationOrDivision}</strong>
                   </div>
                   {article.policeReport.firNumber && (
                     <div>
-                      <span className="text-indigo-700 dark:text-indigo-400 font-medium">FIR Number: </span>
+                      <span className="text-indigo-700 dark:text-indigo-400 font-medium">{isNe ? 'जाहेरी (FIR) नं:' : 'FIR Number:'} </span>
                       <span className="font-mono">{article.policeReport.firNumber}</span>
                     </div>
                   )}
                   <div>
-                    <span className="text-indigo-700 dark:text-indigo-400 font-medium">Offense Type: </span>
+                    <span className="text-indigo-700 dark:text-indigo-400 font-medium">{isNe ? 'मुद्दा / कसुर:' : 'Offense Type:'} </span>
                     <span>{article.policeReport.offenseType || 'Public Order & Incident'}</span>
                   </div>
                   <div>
-                    <span className="text-indigo-700 dark:text-indigo-400 font-medium">Arrests: </span>
-                    <strong>{article.policeReport.arrestsCount} Persons in Custody</strong>
+                    <span className="text-indigo-700 dark:text-indigo-400 font-medium">{isNe ? 'पक्राउ संख्या:' : 'Arrests:'} </span>
+                    <strong>{article.policeReport.arrestsCount} {isNe ? 'जना नियन्त्रणमा' : 'Persons in Custody'}</strong>
                   </div>
                 </div>
                 {article.policeReport.officialStatement && (
@@ -476,20 +617,56 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
               </div>
             )}
 
-            {/* Full Story Content Body */}
+            {/* Story Content Body */}
             <div
               className={`prose dark:prose-invert max-w-none space-y-4 ${
                 fontFamily === 'serif' ? 'font-editorial' : 'font-sans'
               } ${fontSizeClasses}`}
             >
-              {article.content.split('\n\n').map((paragraph, idx) => (
+              {activeContent.split('\n\n').map((paragraph, idx) => (
                 <p key={idx} className="leading-relaxed">
                   {paragraph}
                 </p>
               ))}
             </div>
 
-            {/* Nepali Civic Glossary Interactive Drawer */}
+            {/* MULTI-MEDIA COVERAGE SECTION: Similar News Covered by Other Online Media */}
+            <div className="mt-10 pt-6 border-t border-stone-200 dark:border-stone-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300">
+                  <Globe2 className="w-4 h-4 text-emerald-500" />
+                  <span>Other Online News Media Covering This Story ({mediaOutlets.length})</span>
+                </div>
+                <span className="text-[11px] text-stone-500">Cross-Media Coverage Track</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {mediaOutlets.map((outlet, idx) => (
+                  <a
+                    key={idx}
+                    href={outlet.searchUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-3 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-900/50 hover:border-stone-400 dark:hover:border-stone-600 transition-colors block group"
+                  >
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="font-bold text-stone-900 dark:text-stone-100 group-hover:text-rose-500 transition-colors">
+                        {outlet.name}
+                      </span>
+                      <ExternalLink className="w-3 h-3 text-stone-400 group-hover:text-stone-200" />
+                    </div>
+                    <div className="text-[11px] text-stone-500 dark:text-stone-400 line-clamp-2">
+                      {outlet.perspectiveAngle}
+                    </div>
+                    <div className="text-[10px] text-rose-500 font-medium mt-1">
+                      Search archive on {outlet.domain} →
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            {/* Nepali Civic Glossary */}
             {article.nepaliKeywords && article.nepaliKeywords.length > 0 && (
               <div className="mt-8 pt-6 border-t border-stone-200 dark:border-stone-800">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-stone-500 uppercase tracking-wider mb-3">

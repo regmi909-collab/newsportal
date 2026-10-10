@@ -111,6 +111,16 @@ export interface NewsArticle {
   politicalContext?: PoliticalContext;
   policeReport?: PoliceReportDetail;
   displacement?: DisplacementDetail;
+  contentNepali?: string;
+  summaryNepali?: string;
+  relatedMediaCoverage?: {
+    mediaName: string;
+    mediaDomain: string;
+    url: string;
+    headline: string;
+    angle: string;
+    publishedDate?: string;
+  }[];
   severity: 'critical' | 'high' | 'medium' | 'low';
   nepaliKeywords: NepaliGlossaryItem[];
   readTimeMinutes: number;
@@ -119,6 +129,7 @@ export interface NewsArticle {
   scrapedAt: string;
   scraperMethod: 'rss' | 'live_web' | 'curated_feed' | 'user_input';
   keyTakeaways?: string[];
+  keyTakeawaysNepali?: string[];
 }
 
 export interface UserDigestPreferences {

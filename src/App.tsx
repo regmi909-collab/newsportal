@@ -144,6 +144,9 @@ export default function App() {
   const [selectedParty, setSelectedParty] = useState<PoliticalParty | 'all'>('all');
   const [selectedSeverity, setSelectedSeverity] = useState<'all' | 'critical' | 'high'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [datePeriod, setDatePeriod] = useState<'all' | '2026' | '2025' | '2024' | 'month' | 'custom'>('all');
+  const [fromDate, setFromDate] = useState<string>('');
+  const [toDate, setToDate] = useState<string>('');
 
   // Persist articles and preferences
   useEffect(() => {
@@ -199,23 +202,39 @@ export default function App() {
     );
   };
 
-  // Trigger quick sync / scraper cycle
-  const handleTriggerScrapeCycle = () => {
+  // Trigger quick sync / scraper cycle (calls real live RSS feeds from Nepali media)
+  const handleTriggerScrapeCycle = async () => {
     setIsScraperSyncing(true);
 
-    setTimeout(() => {
-      // Simulate/perform fresh scrape
-      const randomCount = Math.floor(Math.random() * 3) + 1;
-      const newLog: ScraperLog = {
-        id: `log-${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        sourceName: 'The Kathmandu Post & Police Press Feed',
-        status: 'success',
-        message: `HTTP 200 OK. Scraped fresh articles. Extracted 2 FIR references and 1 political movement update.`,
-        articlesParsed: randomCount,
-      };
+    try {
+      const res = await fetch('/api/scrape/live-feeds');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.articles) && data.articles.length > 0) {
+          // Merge newly fetched live articles without duplicates
+          setArticles((prev) => {
+            const existingIds = new Set(prev.map((a) => a.title.toLowerCase().trim()));
+            const fresh = data.articles.filter((a: NewsArticle) => !existingIds.has(a.title.toLowerCase().trim()));
+            return [...fresh, ...prev];
+          });
 
-      setScraperLogs((prev) => [newLog, ...prev.slice(0, 25)]);
+          const liveLog: ScraperLog = {
+            id: `log-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            sourceName: 'OnlineKhabar & Himalayan Times (Live Feeds)',
+            status: 'success',
+            message: `HTTP 200 OK. Ingested ${data.articles.length} real news reports from Nepali RSS portals.`,
+            articlesParsed: data.articles.length,
+          };
+          setScraperLogs((prev) => [liveLog, ...prev.slice(0, 25)]);
+        }
+      }
+    } catch (err) {
+      console.warn('Live RSS feed sync fallback to crawler cycle:', err);
+    }
+
+    // Also update crawler status
+    setTimeout(() => {
       setSources((prev) =>
         prev.map((s) => ({
           ...s,
@@ -224,7 +243,7 @@ export default function App() {
         }))
       );
       setIsScraperSyncing(false);
-    }, 1200);
+    }, 600);
   };
 
   // Add newly scraped article
@@ -330,6 +349,23 @@ export default function App() {
         return false;
       }
 
+      // Year Period and Date filter
+      if (datePeriod !== 'all') {
+        const pubDate = new Date(art.publishedAt);
+        const pubYear = pubDate.getFullYear();
+        if (datePeriod === '2026' && pubYear !== 2026) return false;
+        if (datePeriod === '2025' && pubYear !== 2025) return false;
+        if (datePeriod === '2024' && pubYear !== 2024) return false;
+        if (datePeriod === 'month') {
+          const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+          if (pubDate.getTime() < thirtyDaysAgo) return false;
+        }
+        if (datePeriod === 'custom') {
+          if (fromDate && pubDate < new Date(fromDate)) return false;
+          if (toDate && pubDate > new Date(toDate + 'T23:59:59.999Z')) return false;
+        }
+      }
+
       // Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -356,6 +392,9 @@ export default function App() {
     selectedProvince,
     selectedParty,
     selectedSeverity,
+    datePeriod,
+    fromDate,
+    toDate,
     searchQuery,
   ]);
 
@@ -364,6 +403,9 @@ export default function App() {
     setSelectedProvince('all');
     setSelectedParty('all');
     setSelectedSeverity('all');
+    setDatePeriod('all');
+    setFromDate('');
+    setToDate('');
     setSearchQuery('');
   };
 
@@ -415,6 +457,13 @@ export default function App() {
               onPartyChange={setSelectedParty}
               selectedSeverity={selectedSeverity}
               onSeverityChange={setSelectedSeverity}
+              datePeriod={datePeriod}
+              onDatePeriodChange={setDatePeriod}
+              fromDate={fromDate}
+              onFromDateChange={setFromDate}
+              toDate={toDate}
+              onToDateChange={setToDate}
+              searchKeyword={searchQuery}
               totalArticlesCount={articles.length}
               filteredArticlesCount={filteredArticles.length}
               onResetFilters={resetFilters}

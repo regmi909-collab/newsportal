@@ -7,14 +7,15 @@ export const INITIAL_NEWS_ARTICLES: NewsArticle[] = [
     titleNepali: 'सर्लाहीमा राजनीतिक झडप: १८ परिवार विस्थापित, प्रहरीद्वारा किटानी जाहेरी दर्ता',
     slug: 'sarlahi-political-clash-displaces-18-families-barahathawa-fir',
     source: {
-      name: 'Kathmandu Post & Police Blotter',
+      name: 'The Kathmandu Post & Police Blotter',
       domain: 'kathmandupost.com',
-      url: 'https://kathmandupost.com/national/2026/10/08/sarlahi-clash-displaces-families',
+      url: 'https://kathmandupost.com/national',
       reliabilityScore: 94,
     },
     publishedAt: '2026-10-09T08:15:00.000Z',
     author: 'Anil Shrestha (Janakpur Bureau)',
     summary: 'Violent confrontations between local cadre factions in Barahathawa, Sarlahi have forced 18 Dalit and marginalized farmer families to flee their homes into makeshift school shelters. District Police Office Sarlahi registered 3 separate FIRs and arrested 7 individuals.',
+    summaryNepali: 'सर्लाहीको बरहथवा नगरपालिका–६ मा स्थानीय राजनीतिक समूहहरूबीच भएको झडपपछि १८ दलित तथा सीमान्तकृत किसान परिवार विस्थापित भएका छन्। जिल्ला प्रहरी कार्यालय सर्लाहीले ३ वटा किटानी जाहेरी दर्ता गर्दै ७ जनालाई पक्राउ गरेको छ।',
     content: `BARAHATHAWA, SARLAHI — Clashes ignited between opposing local political cadres in Barahathawa Municipality Ward 6 over control of community forestry funds and local ward development contracts have escalated into targeted intimidation, forcing 18 families to abandon their homesteads late Wednesday night.
 
 According to human rights monitors on the ground, thatched roofs of four homes were set ablaze, and water tube wells were contaminated. The affected families, comprising 84 individuals including 29 children, are currently taking temporary refuge in the classrooms of Shree Janata Secondary School under heavy armed guard.
@@ -26,6 +27,15 @@ Nepal Police District Range Sarlahi dispatched a 60-member combined team of Nepa
 Superintendent of Police (SP) Rabindra Regmi confirmed: "We have registered three specific FIRs under public offense, arson, and criminal intimidation. Seven suspects directly implicated in instigating the violence have been apprehended and produced before the Sarlahi District Court, which granted a five-day judicial remand for custodial interrogation. We will not allow political flags to shield criminals."
 
 Local Red Cross volunteers have supplied 20 tarpaulin sheets and emergency dry rations, but displaced mothers have urgently appealed for infant milk, clean drinking water, and blankets as nighttime temperatures drop.`,
+    contentNepali: `बरहथवा, सर्लाही — सामुदायिक वन उपभोक्ता समूहको कोष तथा स्थानीय वडा विकासका योजना नियन्त्रणलाई लिएर बरहथवा नगरपालिका–६ मा राजनीतिक दलका कार्यकर्ताबीच भएको झडप हिंसात्मक बन्दा १८ परिवारले गाउँ छाडेर भाग्नु परेको छ।
+
+मानव अधिकार अनुगमनकर्ताहरूका अनुसार चारवटा घरमा आगजनी गरिएको छ भने पिउने पानीका इनारहरूमा फोहोर हालिएको छ। विस्थापित भएका ८४ जना (जसमा २९ बालबालिका छन्) हाल श्री जनता माध्यमिक विद्यालयका कोठाहरूमा सुरक्षाकर्मीको कडा निगरानीमा अस्थायी आश्रय लिइरहेका छन्।
+
+"बाँसका भाटा बोकेका कार्यकर्ताहरूले टोल घेराउ गरेपछि हामी बालबच्चा च्यापेर उखुबारीतिर भाग्यौं। प्रशासनले सुरक्षाको ग्यारेन्टी नगरेसम्म हामी गाउँ फर्कन सक्ने अवस्था छैन," विस्थापित ज्येष्ठ नागरिक रामप्रसाद पासवानले गुनासो गरे।
+
+जिल्ला प्रहरी कार्यालय सर्लाहीले नेपाल प्रहरी र सशस्त्र प्रहरी बल (APF) को ६० सदस्यीय संयुक्त टोली परिचालन गरी निषेधाज्ञा जारी गरेको छ। प्रहरी उपरीक्षक (SP) रवीन्द्र रेग्मीले भने: "हामीले सार्वजनिक अपराध, आगजनी र आपराधिक उपद्रव अन्तर्गत ३ वटा किटानी जाहेरी दर्ता गरेका छौं। ७ जना अभियुक्तलाई अदालतबाट ५ दिनको म्याद थप गरी अनुसन्धान भइरहेको छ। राजनीतिक आडमा अपराध गर्ने कसैलाई पनि उन्मुक्ति दिइने छैन।"
+
+नेपाल रेडक्रस सोसाइटीले २० वटा त्रिपाल र केही सुख्खा खाद्यान्न उपलब्ध गराए पनि चिसो बढ्दै गएकाले बालबालिकाका लागि तातो कपडा, शिशु आहार र शुद्ध पिउने पानीको तत्काल खाँचो रहेको छ।`,
     categories: ['displacement', 'police_report', 'politics'],
     location: {
       province: 'Madhesh',
@@ -78,6 +88,11 @@ Local Red Cross volunteers have supplied 20 tarpaulin sheets and emergency dry r
       '18 families (84 individuals) displaced in Barahathawa following inter-party cadre clashes.',
       'Sarlahi District Police filed 3 FIRs and arrested 7 individuals on arson & criminal intimidation charges.',
       'Displaced families staying in school building urgently need rations, infant nutrition, and security protection.',
+    ],
+    keyTakeawaysNepali: [
+      'बरहथवामा राजनीतिक झडपपछि १८ परिवार (८४ नागरिक) विस्थापित भई विद्यालयमा आश्रित।',
+      'सर्लाही प्रहरीद्वारा ३ वटा किटानी जाहेरी दर्ता, ७ जना पक्राउ गरी ५ दिनको म्याद थप।',
+      'विस्थापित बालबालिका र महिलाका लागि तत्काल न्यानो कपडा, शुद्ध पानी र सुरक्षा पिकेटको माग।',
     ],
   },
   {
@@ -138,12 +153,13 @@ The CWC resolved to convene a special policy convention in mid-November and inst
     source: {
       name: 'Nepal Police News Blotter & OnlineKhabar',
       domain: 'onlinekhabar.com',
-      url: 'https://onlinekhabar.com/2026/10/cib-cooperative-probe-chargesheet',
+      url: 'https://english.onlinekhabar.com',
       reliabilityScore: 96,
     },
     publishedAt: '2026-10-09T05:20:00.000Z',
     author: 'Suman Adhikari (Crime Desk)',
     summary: 'The Central Investigation Bureau (CIB) of Nepal Police has concluded its financial forensic analysis of Suryadarshan and Supreme Cooperatives, identifying Rs 1.42 billion in diverted depositor funds. Chargesheets filed against 19 individuals.',
+    summaryNepali: 'नेपाल प्रहरीको केन्द्रीय अनुसन्धान ब्यूरो (CIB) ले सूर्यदर्शन र सुप्रिम सहकारीको वित्तीय अनुसन्धान प्रतिवेदन सरकारी वकिलको कार्यालयमा बुझाएको छ। १ अर्ब ४२ करोड अपचलन भएको ठहर गर्दै १९ जनाविरुद्ध अभियोगपत्र दायर गरिएको छ।',
     content: `KATHMANDU / POKHARA — In one of the most politically sensitive investigations of the current fiscal year, the Central Investigation Bureau (CIB) of Nepal Police, in close coordination with District Police Office Kaski, has submitted its 480-page forensic chargesheet to the Government Attorney's Office.
 
 The investigation scrutinized systemic siphonings from Suryadarshan Savings and Credit Cooperative in Pokhara, Supreme Cooperative in Butwal, and Sahara Cooperative in Chitwan. The report documents shell enterprise transfers, unauthorized personal overdrafts, and forged collateral documents.
@@ -151,6 +167,13 @@ The investigation scrutinized systemic siphonings from Suryadarshan Savings and 
 Senior Superintendent of Police (SSP) Hobindra Bogati, spokesperson for CIB, stated in an official press briefing at CIB Headquarters in Lazimpat: "Our financial crime division analyzed over 8,400 transaction vouchers. The report details specific fund flows routed into media conglomerates and private shell ventures. We have placed travel bans on 22 directors and requested freezing of 12 corporate bank accounts."
 
 Meanwhile, leaders of the Rastriya Swatantra Party (RSP) staged a peaceful sit-in outside the District Police Office Kaski in Pokhara, alleging that state machinery was being weaponized for political vendetta, an assertion Nepal Police firmly rebutted as professional criminal procedure.`,
+    contentNepali: `काठमाडौं / पोखरा — चालु आर्थिक वर्षको सबैभन्दा संवेदनशील अनुसन्धानमध्ये एक, नेपाल प्रहरीको केन्द्रीय अनुसन्धान ब्यूरो (CIB) ले जिल्ला प्रहरी कार्यालय कास्कीसँगको समन्वयमा आफ्नो ४८० पृष्ठको अनुसन्धान प्रतिवेदन जिल्ला सरकारी वकिलको कार्यालयमा पेश गरेको छ।
+
+अनुसन्धानले पोखराको सूर्यदर्शन बचत तथा ऋण सहकारी, बुटवलको सुप्रिम र चितवनको सहारा सहकारीबाट भएको व्यवस्थित रकम अपचलनको पुष्टि गरेको छ। प्रतिवेदनमा नक्कली कम्पनी खडा गरी ऋण प्रवाह, बिनाधितो व्यक्तिगत ओभरड्राफ्ट र किर्ते कागजातहरूको फेहरिस्त समावेश छ।
+
+सीआईबीका प्रवक्ता तथा प्रहरी वरिष्ठ उपरीक्षक (SSP) होबिन्द्र बोगटीले लाजिम्पाटस्थित मुख्यालयमा आयोजित पत्रकार सम्मेलनमा भने: "हाम्रो वित्तीय अनुसन्धान महाशाखाले ८,४०० भन्दा बढी भौचरहरूको विश्लेषण गरेको छ। प्रतिवेदनमा मिडिया र निजी उद्यमहरूमा रकम पुगेको प्रमाण फेला परेको छ। हामीले २२ जना सञ्चालकको यात्रा अनुमति रोक्का गरेका छौं र १२ वटा बैंक खाता रोक्का राख्न पत्राचार गरेका छौं।"
+
+यसैबीच राष्ट्रिय स्वतन्त्र पार्टी (रास्वपा) का नेता–कार्यकर्ताहरूले कास्की जिल्ला प्रहरी कार्यालय बाहिर धर्ना दिँदै राजनीतिक प्रतिशोधको आरोप लगाएका छन्। तर नेपाल प्रहरीले यो नियमित र व्यावसायिक फौजदारी अनुसन्धान प्रक्रिया भएको दाबी गरेको छ।`,
     categories: ['police_report', 'politics'],
     location: {
       province: 'Gandaki',
@@ -191,6 +214,11 @@ Meanwhile, leaders of the Rastriya Swatantra Party (RSP) staged a peaceful sit-i
       '12 bank accounts frozen and travel restrictions imposed on 22 directors.',
       'RSP cadres stage peaceful demonstrations alleging political vendetta; CIB asserts objective financial evidence.',
     ],
+    keyTakeawaysNepali: [
+      'सीआईबीद्वारा १ अर्ब ४२ करोड सहकारी अपचलनसम्बन्धी ४८० पृष्ठको प्रतिवेदन पेश।',
+      '१२ वटा बैंक खाता रोक्का र २२ जना सञ्चालकलाई यात्रा प्रतिबन्ध।',
+      'रास्वपाद्वारा कास्कीमा धर्ना; प्रहरीद्वारा व्यावसायिक अनुसन्धान भएको स्पष्टोक्ति।',
+    ],
   },
   {
     id: 'art-004',
@@ -200,12 +228,13 @@ Meanwhile, leaders of the Rastriya Swatantra Party (RSP) staged a peaceful sit-i
     source: {
       name: 'Setopati & Regional Monitor',
       domain: 'en.setopati.com',
-      url: 'https://en.setopati.com/social/chaurjahari-displacement-karnali-clash',
+      url: 'https://en.setopati.com',
       reliabilityScore: 91,
     },
     publishedAt: '2026-10-08T17:45:00.000Z',
     author: 'Dipak Oli (Karnali Bureau)',
     summary: 'A partisan feud between cadres of CPN (Maoist Centre) and CPN-UML regarding resettlement boundaries and ward development borders in Rukum West has displaced 24 families who had their livestock seized and food stocks vandalized.',
+    summaryNepali: 'रुकुम पश्चिमको चौरजहारी नगरपालिका–११ मा सिँचाइ तथा स्थानीय विकासको सीमा विवादलाई लिएर माओवादी केन्द्र र एमाले कार्यकर्ताबीच झडप हुँदा २४ किसान परिवार विस्थापित भएका छन्।',
     content: `CHAURJAHARI, RUKUM WEST — Amid simmering political tensions over the demarcation of municipal grazing lands and irrigation channel rights, 24 peasant families in Chaurjahari Ward 11 have been forced into internal displacement.
 
 The incident originated when rival party-affiliated youth organizations clashed during a ward assembly meeting discussing distribution of cooperative agricultural subsidies. Following the disruption, aggressive factions erected barricades around the lower village, cutting off water pipelines and threatening residents who refused to sign partisan allegiance pledges.
@@ -215,6 +244,15 @@ As of Thursday morning, 112 villagers, including 41 children and 18 senior citiz
 "We have lived here for three generations. Now politicians from both sides are using our homesteads as bargaining chips. We don't care about their party flags; we just need our homes back," said Maya Budha, 38, holding her seven-month-old daughter.
 
 Chief District Officer (CDO) Hari Prasad Pant held an all-party dialogue in Khalanga to broker a truce, but local leaders failed to agree on compensation terms. District Police Office Rukum West deployed an armed security detachment to guard the deserted settlement to prevent further looting.`,
+    contentNepali: `चौरजहारी, रुकुम पश्चिम — नगरपालिकाको चरन क्षेत्र र सिँचाइ कुलोको अधिकार सीमालाई लिएर चौरजहारी–११ मा राजनीतिक तनाव चर्किएपछि २४ किसान परिवार आफ्नो थातथलो छाड्न बाध्य भएका छन्।
+
+वडा भेलामा कृषि अनुदान वितरणको विषयलाई लिएर युवा संगठनका कार्यकर्ताबीच भएको विवादपछि तल्लो गाउँका बासिन्दालाई लक्षित गरी खानेपानीको पाइपलाइन काटिएको र बाटो बन्द गरिएको पीडितहरूले बताएका छन्।
+
+बिहीबार बिहानसम्म ४१ बालबालिका र १८ ज्येष्ठ नागरिकसहित ११२ जना छिमेकी वडा नम्बर ९ को सामुदायिक अन्न भण्डारमा कष्टकर रूपमा बसिरहेका छन्। हिमाली चिसोका कारण बालबालिकामा निमोनिया लगायतका स्वास्थ्य समस्या देखिन थालेको छ।
+
+"हाम्रो तीन पुस्ता यहीँ बित्यो। अहिले नेताहरूले हाम्रो घरखेतलाई दलीय सौदाबाजीको विषय बनाएका छन्। हामीलाई कुनै पार्टीको झण्डा चाहिँदैन, आफ्नो घरमा शान्तिसँग बस्न पाउनुपर्छ," सात महिनाकी छोरी काखमा च्यापेकी माया बुढाले पीडा पोखिन्।
+
+प्रमुख जिल्ला अधिकारी (CDO) हरिप्रसाद पन्तले खलंगामा सर्वदलीय बैठक राखेर सहमति जुटाउने प्रयास गरे पनि क्षतिपूर्तिको विषयमा सहमति हुन सकेको छैन। जिल्ला प्रहरी कार्यालय रुकुम पश्चिमले गाउँमा थप लुटपाट हुन नदिन हतियारसहितको प्रहरी टोली खटाएको छ।`,
     categories: ['displacement', 'politics'],
     location: {
       province: 'Karnali',
@@ -255,6 +293,11 @@ Chief District Officer (CDO) Hari Prasad Pant held an all-party dialogue in Khal
       'Essential water lines severed; families seeking shelter in community grain shed in Ward 9.',
       'All-party mediation in Khalanga deadlocked; urgent humanitarian relief needed for 41 children.',
     ],
+    keyTakeawaysNepali: [
+      'चौरजहारी–११ मा राजनीतिक विवादपछि २४ परिवार (११२ जना) विस्थापित।',
+      'खानेपानी आपूर्ति अवरुद्ध; वडा ९ को अन्न भण्डारमा बालबालिकासहित कष्टकर बसाइ।',
+      'खलंगामा सर्वदलीय वार्ता अनिर्णित; तत्काल न्यानो कपडा र बाल स्वास्थ्य सेवा आवश्यक।',
+    ],
   },
   {
     id: 'art-005',
@@ -264,7 +307,7 @@ Chief District Officer (CDO) Hari Prasad Pant held an all-party dialogue in Khal
     source: {
       name: 'MyRepublica & Kathmandu Valley Police',
       domain: 'myrepublica.nagariknetwork.com',
-      url: 'https://myrepublica.nagariknetwork.com/news/maitighar-protest-rpp-police-detention',
+      url: 'https://myrepublica.nagariknetwork.com',
       reliabilityScore: 93,
     },
     publishedAt: '2026-10-09T03:30:00.000Z',
