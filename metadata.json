@@ -1,0 +1,6 @@
+{
+  "name": "Nepal Civic & Political News Monitor",
+  "description": "Comprehensive news scraper, police report blotter, conflict displacement tracker, and personalized daily digest for Nepal's political movements.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
